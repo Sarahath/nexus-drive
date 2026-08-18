@@ -1,0 +1,9 @@
+{
+  "name": "Nexus Drive — AI Car Simulation",
+  "short_name": "Nexus Drive",
+  "start_url": "index.html",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#030508",
+  "theme_color": "#030508"
+}
