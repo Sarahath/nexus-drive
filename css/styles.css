@@ -3,6 +3,16 @@
   --acc:#2ee6d6;--acc2:#ff8a3d;--red:#ff3344;--grn:#2ecc70;--yel:#ffcc00;
   --txt:#dfe9ee;--dim:#6a8899;
   --fd:'Orbitron',sans-serif;--fh:'Rajdhani',sans-serif;
+  /* "Forced viewport" units — equal to the browser's real 1vw/1vh by
+     default. When JS detects a touch device stuck in portrait and
+     switches the page into forced-landscape mode (see .force-landscape
+     below), it overrides these two on <html> with the *logical*
+     (post-rotation, width/height-swapped) 1% values instead, in px.
+     Every panel/HUD size below that used to read Nvw/Nvh now reads
+     calc(var(--fvw)*N)/calc(var(--fvh)*N) so it sizes correctly against
+     whichever orientation is actually being displayed, not just the
+     physical one the OS reports. */
+  --fvw:1vw;--fvh:1vh;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-touch-callout:none}
 html{width:100%;height:100%;overflow:hidden}
@@ -21,6 +31,27 @@ body{width:100%;height:100%;overflow:hidden;background:var(--bg);
   #c{height:100dvh}
 }
 
+/* FORCED LANDSCAPE — on a touch device that's physically held in
+   portrait, this rotates the *entire* page 90° with a pure CSS
+   transform so the game displays in landscape immediately, with no
+   "please rotate" prompt and no need for the player to actually turn
+   their phone. body already has position:fixed;inset:0, so giving it
+   a transform here also makes it the containing block for every
+   position:fixed overlay in the game (canvas, HUD, modals, touch
+   controls) — they all rotate together as one unit automatically.
+   The .force-landscape class itself is toggled on <html> by JS
+   (see initForcedLandscape in js/customization.js), which also sets
+   --fvw/--fvh above to match. This never engages on desktop/mouse
+   input, and steps aside on its own the moment the phone is actually
+   rotated to real landscape or a true fullscreen orientation lock
+   succeeds. */
+html.force-landscape body{
+  position:fixed;top:0;left:0;
+  width:100vh;height:100vw;
+  transform-origin:0 0;
+  transform:rotate(90deg) translateY(-100%);
+}
+
 /* LOADING */
 #scr-load{position:fixed;inset:0;z-index:300;
   background:radial-gradient(ellipse at 50% 40%,#0c1820 0%,#030508 70%);
@@ -28,16 +59,16 @@ body{width:100%;height:100%;overflow:hidden;background:var(--bg);
   transition:opacity 1.2s,visibility 1.2s}
 #scr-load.out{opacity:0;visibility:hidden;pointer-events:none}
 .ld-logo{font-family:var(--fd);font-weight:900;
-  font-size:clamp(2.4rem,7vw,5rem);letter-spacing:.2em;
+  font-size:clamp(2.4rem,calc(var(--fvw) * 7),5rem);letter-spacing:.2em;
   background:linear-gradient(135deg,#fff 30%,var(--acc));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
   filter:drop-shadow(0 0 30px rgba(46,230,214,.4))}
 .ld-sub{letter-spacing:.35em;font-size:.75rem;color:var(--dim);margin:.6em 0 3em;text-transform:uppercase}
-.ld-track{width:min(420px,70vw);height:3px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden}
+.ld-track{width:min(420px,calc(var(--fvw) * 70));height:3px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden}
 .ld-fill{height:100%;width:0%;background:linear-gradient(90deg,#17847a,var(--acc));
   box-shadow:0 0 18px rgba(46,230,214,.5);transition:width .3s ease}
 .ld-meta{display:flex;justify-content:space-between;margin-top:.8em;
-  font-size:.78rem;color:var(--dim);width:min(420px,70vw)}
+  font-size:.78rem;color:var(--dim);width:min(420px,calc(var(--fvw) * 70))}
 .ld-ring{position:absolute;border-radius:50%;top:50%;left:50%;
   transform:translate(-50%,-50%);animation:lspin 18s linear infinite}
 .ld-ring:nth-child(1){width:260px;height:260px;border:1px solid rgba(46,230,214,.12)}
@@ -110,7 +141,7 @@ input[type=range]{width:100%;accent-color:var(--acc);height:4px}
 #hud{position:fixed;inset:0;z-index:50;pointer-events:none;opacity:0;transition:opacity .9s}
 #hud.show{opacity:1}
 .htl{position:absolute;top:1.1em;left:1.1em;display:flex;flex-direction:column;gap:.55em;
-  max-height:calc(100vh - 210px);max-height:calc(100dvh - 210px);overflow:hidden}
+  max-height:calc(calc(var(--fvh) * 100) - 210px);max-height:calc(100dvh - 210px);overflow:hidden}
 .htr{position:absolute;top:1.1em;right:1.1em;display:flex;flex-direction:column;align-items:flex-end;gap:.55em}
 .hbl{position:absolute;bottom:1.3em;left:1.3em}
 .hbr{position:absolute;bottom:1.3em;right:1.3em;text-align:right}
@@ -190,15 +221,15 @@ input[type=range]{width:100%;accent-color:var(--acc);height:4px}
    RIGHT to steer that way, release to re-center, exactly like the gas/
    brake pedals already work. */
 #tc-wheel{position:absolute;pointer-events:none;left:calc(18px + env(safe-area-inset-left));
-  bottom:calc(9vh + 26px + env(safe-area-inset-bottom));display:flex;gap:.8em;align-items:flex-end}
-.tc-steer{pointer-events:all;touch-action:none;width:clamp(64px,17vw,86px);height:clamp(64px,17vw,86px);
+  bottom:calc(calc(var(--fvh) * 9) + 26px + env(safe-area-inset-bottom));display:flex;gap:.8em;align-items:flex-end}
+.tc-steer{pointer-events:all;touch-action:none;width:clamp(64px,calc(var(--fvw) * 17),86px);height:clamp(64px,calc(var(--fvw) * 17),86px);
   border-radius:16px;display:flex;align-items:center;justify-content:center;
   font-size:1.7rem;font-family:var(--fd);color:var(--dim);border:2px solid var(--border);
   background:rgba(255,255,255,.04);opacity:.92;transition:transform .08s,box-shadow .12s,background .12s,color .12s}
 .tc-steer.active{background:radial-gradient(circle,rgba(46,230,214,.35),rgba(46,230,214,.08));
   border-color:var(--acc);box-shadow:0 0 22px rgba(46,230,214,.5);color:var(--acc);transform:scale(.92)}
 #tc-pedals{position:absolute;pointer-events:none;right:calc(18px + env(safe-area-inset-right));
-  bottom:calc(9vh + 26px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:.6em;align-items:flex-end}
+  bottom:calc(calc(var(--fvh) * 9) + 26px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:.6em;align-items:flex-end}
 /* rectangular icon-over-label buttons, matching the reference design's
    FORWARD/BACKWARD buttons — replaces the old plain gas/brake circles */
 .tc-drivebtn{pointer-events:all;touch-action:none;width:5.6em;height:3.6em;border-radius:12px;
@@ -277,7 +308,7 @@ input[type=range]{width:100%;accent-color:var(--acc);height:4px}
   padding:2em 1.2em;pointer-events:all;overflow-y:auto;touch-action:pan-y}
 #scr-mode.show{display:flex}
 .mode-hdr{font-family:var(--fd);font-weight:900;letter-spacing:.18em;
-  font-size:clamp(1.3rem,4vw,2.1rem);color:var(--txt);text-align:center}
+  font-size:clamp(1.3rem,calc(var(--fvw) * 4),2.1rem);color:var(--txt);text-align:center}
 .mode-sub{font-size:.78rem;color:var(--dim);letter-spacing:.05em;margin:.5em 0 2.2em;text-align:center}
 .mode-grid{display:flex;gap:1.5em;flex-wrap:wrap;justify-content:center;max-width:900px}
 .mode-card{width:310px;background:var(--panel);border:1px solid var(--border);
@@ -297,7 +328,7 @@ input[type=range]{width:100%;accent-color:var(--acc);height:4px}
   background:rgba(1,3,6,.94);backdrop-filter:blur(10px);
   display:none;align-items:center;justify-content:center;pointer-events:all}
 #scr-brief.show,#scr-misend.show,#scr-campaign.show,#scr-gameover.show{display:flex}
-.brief-panel{width:min(520px,94vw);max-height:92vh;overflow-y:auto;touch-action:pan-y;
+.brief-panel{width:min(520px,calc(var(--fvw) * 94));max-height:calc(var(--fvh) * 92);overflow-y:auto;touch-action:pan-y;
   background:#05090f;border:1px solid var(--border);padding:2em}
 .brief-tag{font-size:.62rem;letter-spacing:.22em;color:var(--acc2);text-transform:uppercase;margin-bottom:.5em}
 .brief-ttl{font-family:var(--fd);font-size:1.2rem;letter-spacing:.05em;color:var(--acc);
@@ -336,7 +367,7 @@ input[type=range]{width:100%;accent-color:var(--acc);height:4px}
 .phc-status{font-size:.72rem;color:var(--dim);margin-bottom:.8em}
 .phc-status.ok{color:#2ecc70}
 .phc-status.err{color:#ff5566}
-.map-panel{background:#05090f;border:1px solid var(--border);padding:1.5em;width:min(680px,96vw)}
+.map-panel{background:#05090f;border:1px solid var(--border);padding:1.5em;width:min(680px,calc(var(--fvw) * 96))}
 .map-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:.9em}
 
 /* MULTIPLAYER */
@@ -398,7 +429,7 @@ input[type=range]{width:100%;accent-color:var(--acc);height:4px}
 #pause{position:fixed;inset:0;z-index:130;background:rgba(1,3,6,.9);
   backdrop-filter:blur(14px);display:none;align-items:center;justify-content:center;pointer-events:all}
 #pause.show{display:flex}
-.pm{width:min(540px,94vw);max-height:92vh;overflow-y:auto;touch-action:pan-y;
+.pm{width:min(540px,calc(var(--fvw) * 94));max-height:calc(var(--fvh) * 92);overflow-y:auto;touch-action:pan-y;
   background:#05090f;border:1px solid var(--border);padding:2em}
 .pm-ttl{font-family:var(--fd);font-size:1.05rem;letter-spacing:.14em;color:var(--acc);margin-bottom:1.4em}
 .pm-row{margin-bottom:1.1em}
@@ -432,14 +463,15 @@ input[type=range]{width:100%;accent-color:var(--acc);height:4px}
 /* VEIL */
 #veil{position:fixed;inset:0;z-index:190;background:#000;opacity:0;pointer-events:none;transition:opacity .7s}
 
-/* ROTATE-DEVICE PROMPT */
-#rotate-prompt{display:none;position:fixed;inset:0;z-index:400;
+/* ROTATE-DEVICE PROMPT — disabled: the game already renders and plays
+   fine in portrait (touch controls, HUD, and canvas all adapt to the
+   viewport), so this interstitial is no longer shown at all. Left in
+   place (display:none, unconditionally) rather than deleted so the
+   markup/JS wiring keeps working harmlessly if it's ever re-enabled. */
+#rotate-prompt{display:none!important;position:fixed;inset:0;z-index:400;
   background:radial-gradient(ellipse at 50% 40%,#0c1820 0%,#030508 75%);
   flex-direction:column;align-items:center;justify-content:center;text-align:center;
   padding:2em;gap:1.1em}
-@media screen and (orientation:portrait) and (pointer:coarse){
-  #rotate-prompt:not(.dismissed){display:flex}
-}
 .rot-ico{font-size:3.2rem;animation:rot-spin 1.6s ease-in-out infinite}
 @keyframes rot-spin{0%,100%{transform:rotate(0deg)}50%{transform:rotate(90deg)}}
 .rot-ttl{font-family:var(--fd);font-weight:900;letter-spacing:.14em;font-size:1.05rem;color:var(--acc)}
@@ -474,7 +506,7 @@ input[type=range]{width:100%;accent-color:var(--acc);height:4px}
   #sensor-hud{display:none!important}
   #fps-hud{display:none!important}
   #veh-ind{display:none!important}
-  .htl{gap:.3em;max-height:calc(100vh - 220px);max-height:calc(100dvh - 220px)}
+  .htl{gap:.3em;max-height:calc(calc(var(--fvh) * 100) - 220px);max-height:calc(100dvh - 220px)}
   .hpanel{padding:.35em .6em}
   /* the full mission sentence alone was tall enough to push the panel's
      bottom edge down into the gauge cluster below it — keep just the
@@ -526,7 +558,7 @@ input[type=range]{width:100%;accent-color:var(--acc);height:4px}
 .modal-overlay.show { display: flex !important; }
 
 .mis-select-panel {
-  width: min(1120px, 96vw); max-height: 92vh; background: rgba(8, 16, 28, 0.97);
+  width: min(1120px, calc(var(--fvw) * 96)); max-height: calc(var(--fvh) * 92); background: rgba(8, 16, 28, 0.97);
   border: 1px solid rgba(0, 229, 255, 0.35); border-radius: 20px;
   padding: 1.8rem 2rem; box-shadow: 0 20px 60px rgba(0,0,0,0.85);
   text-align: center; display: flex; flex-direction: column;
@@ -541,7 +573,7 @@ input[type=range]{width:100%;accent-color:var(--acc);height:4px}
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 1.1rem;
   margin: 0.8rem 0;
-  max-height: 62vh;
+  max-height: calc(var(--fvh) * 62);
   overflow-y: auto;
   padding: 10px 6px;
 }
@@ -680,7 +712,7 @@ input[type=range]{width:100%;accent-color:var(--acc);height:4px}
   border-radius: 20px;
   padding: 2rem 2.5rem;
   box-shadow: 0 0 40px rgba(46, 230, 214, 0.2);
-  width: min(850px, 95vw);
+  width: min(850px, calc(var(--fvw) * 95));
 }
 .mp-qr-row {
   display: flex; gap: 2rem; justify-content: center; margin: 1.5rem 0;

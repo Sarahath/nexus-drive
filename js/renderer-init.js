@@ -1,19 +1,32 @@
 "use strict";
 /* ─── RENDERER INIT ──────────────────────────────────────────── */
+/* Real (unrotated) viewport size vs. the *logical* size the game should
+   actually render at. These only differ while .force-landscape is
+   active (see styles.css + initForcedLandscape in customization.js),
+   in which case width/height are swapped to match what's visually on
+   screen after the CSS rotation — otherwise this is just innerWidth/
+   innerHeight as normal. Shared by the renderer, the drive camera, and
+   the multiplayer split-screen view so all three always agree. */
+function getLogicalViewportSize(){
+  const w=(window.visualViewport?window.visualViewport.width:innerWidth);
+  const h=(window.visualViewport?window.visualViewport.height:innerHeight);
+  const forced=document.documentElement.classList.contains('force-landscape');
+  return forced?{w:h,h:w}:{w,h};
+}
+let queueGameResize=()=>{}; // replaced with the real thing once initRenderer runs
 function initRenderer(){
   renderer=new THREE.WebGLRenderer({canvas:document.getElementById('c'),antialias:true,powerPreference:'high-performance'});
   basePixelRatio=Math.min(window.devicePixelRatio||1, 2.0);
   curPixelRatio=basePixelRatio;
   renderer.setPixelRatio(curPixelRatio);
-  renderer.setSize(innerWidth,innerHeight);
+  {const{w,h}=getLogicalViewportSize();renderer.setSize(w,h);}
   renderer.shadowMap.enabled=true;
   renderer.shadowMap.type=THREE.PCFSoftShadowMap;
   renderer.outputEncoding=THREE.sRGBEncoding;
   renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;
   let resizeRAF=null;
   const doResize=()=>{
-    const w=(window.visualViewport?window.visualViewport.width:innerWidth);
-    const h=(window.visualViewport?window.visualViewport.height:innerHeight);
+    const{w,h}=getLogicalViewportSize();
     renderer.setSize(w,h);
     if(driveCam){driveCam.aspect=w/h;driveCam.updateProjectionMatrix();}
     resizeCu();
@@ -22,6 +35,7 @@ function initRenderer(){
     if(resizeRAF)cancelAnimationFrame(resizeRAF);
     resizeRAF=requestAnimationFrame(doResize);
   };
+  queueGameResize=queueResize;
   window.addEventListener('resize',queueResize);
   window.addEventListener('orientationchange',()=>{
     // mobile browsers can take a moment to finish resizing chrome

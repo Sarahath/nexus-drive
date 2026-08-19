@@ -38,7 +38,7 @@ function triggerImpact(speedAtImpact,pos=null,kind='wall'){
     if(Car.value<=0&&appState==='driving')showGameOver();
   }
 }
-function mkDriveCam(){driveCam=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.1,300);}
+function mkDriveCam(){const{w,h}=getLogicalViewportSize();driveCam=new THREE.PerspectiveCamera(50,w/h,.1,300);}
 function updateCam(dt){
   if(!driveCam)return;
   if(camShakeT>0){camShakeT=Math.max(0,camShakeT-dt);}

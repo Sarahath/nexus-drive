@@ -165,7 +165,7 @@ function updateMPCam(cam,r){
 }
 
 function renderMPSplit(){
-  const w=innerWidth,h=innerHeight,halfH=Math.floor(h/2);
+  const{w,h}=getLogicalViewportSize();const halfH=Math.floor(h/2);
   renderer.setScissorTest(true);
   
   // Top Half: Player 1 (Red Car)
@@ -184,7 +184,8 @@ function renderMPSplit(){
 function resetMPRenderState(){
   if(!renderer)return;
   renderer.setScissorTest(false);
-  renderer.setViewport(0,0,innerWidth,innerHeight);
+  const{w,h}=getLogicalViewportSize();
+  renderer.setViewport(0,0,w,h);
 }
 
 let REAL_LAN_IP='10.227.214.119';

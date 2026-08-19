@@ -142,6 +142,49 @@ function wireCu(){
   document.getElementById('cu-rst').onclick=()=>{cuState.sels={};cuState.carCol=CAR_PAL[0];showCuType(cuType);toast('↺ Reset to defaults');};
   document.getElementById('cu-go').onclick=()=>startSim();
 }
+/* ─── FORCED LANDSCAPE (CSS-ROTATE, NO PERMISSION NEEDED) ─────────
+   True OS-level orientation lock (screen.orientation.lock) only works
+   once the page is already in real Fullscreen — which itself needs a
+   user tap first (see initMobileAutoFullscreen below). To make the
+   game appear in landscape immediately, with no tap and no physical
+   rotation required, this instead rotates the whole page 90° with a
+   CSS transform on `body` (see .force-landscape in styles.css) purely
+   based on device characteristics — nothing here needs a gesture.
+   Also keeps the --fvw/--fvh CSS custom properties (used by every
+   panel/HUD size that used to be plain vw/vh) matched to the *logical*
+   post-rotation dimensions, since real vw/vh units always measure the
+   physical viewport and can't be affected by a transform. Re-checked
+   on resize/orientationchange so it engages, disengages, and re-syncs
+   automatically if the player does physically rotate the phone, or if
+   a real orientation lock later succeeds via enterFullscreen(). */
+function isForceLandscapeCandidate(){
+  const isTouch=('ontouchstart' in window)||navigator.maxTouchPoints>0||matchMedia('(pointer:coarse)').matches;
+  if(!isTouch)return false;
+  return window.innerWidth<window.innerHeight; // physically portrait
+}
+function syncForcedLandscape(){
+  const should=isForceLandscapeCandidate();
+  const root=document.documentElement;
+  root.classList.toggle('force-landscape',should);
+  // real (unrotated) physical dimensions — used both to size the
+  // rotated body box itself (100vh/100vw, still literal in CSS) and,
+  // swapped, to compute the logical --fvw/--fvh for everything inside it
+  const pw=window.innerWidth,ph=window.innerHeight;
+  const logicalW=should?ph:pw, logicalH=should?pw:ph;
+  root.style.setProperty('--fvw',(logicalW/100)+'px');
+  root.style.setProperty('--fvh',(logicalH/100)+'px');
+  if(typeof queueGameResize==='function')queueGameResize();
+}
+function initForcedLandscape(){
+  syncForcedLandscape();
+  window.addEventListener('resize',syncForcedLandscape);
+  window.addEventListener('orientationchange',()=>{
+    syncForcedLandscape();setTimeout(syncForcedLandscape,120);setTimeout(syncForcedLandscape,400);
+  });
+  if(window.visualViewport)window.visualViewport.addEventListener('resize',syncForcedLandscape);
+  document.addEventListener('fullscreenchange',syncForcedLandscape);
+}
+
 function enterFullscreen(){
   try{
     const el=document.documentElement;
@@ -181,19 +224,32 @@ function wireRotatePrompt(){
 /* ─── AUTO FULLSCREEN ON MOBILE ──────────────────────────────────
    Browsers block requestFullscreen() unless it's called synchronously
    inside a real user-gesture handler — there's no way to trigger it
-   purely on page load. The closest thing to "automatic" fullscreen is
-   firing it on the player's very first tap anywhere on the page,
-   before they've even reached a menu button, so the game goes
-   immersive as early as physically possible. This only arms itself on
-   touch devices and never touches desktop/mouse behavior. It also
-   re-arms itself if fullscreen gets exited (e.g. an OS rotate/back
-   gesture) so the next tap restores it. */
+   purely on page load (this is a hard security restriction with no
+   workaround; no website can hide the browser's own address bar/tab
+   UI without at least one real touch from the player). The closest
+   thing to "automatic" is firing it on the very first touch anywhere
+   on the page — before the player has even reached a control — so
+   the browser chrome disappears as early as physically possible.
+   To make that first touch as reliable as possible across Chrome
+   versions/builds, several different gesture event types are all
+   armed at once (whichever fires first wins, the rest are removed).
+   Touch-only: never touches desktop/mouse behavior. Re-arms itself if
+   fullscreen gets exited (e.g. an OS rotate/back gesture) so the next
+   tap restores it. */
 function initMobileAutoFullscreen(){
   const isTouch=('ontouchstart' in window)||navigator.maxTouchPoints>0||matchMedia('(pointer:coarse)').matches;
   if(!isTouch)return;
+  const GESTURE_EVENTS=['pointerdown','touchstart','touchend','mousedown','click'];
+  let armed=false;
   const arm=()=>{
-    const onFirstTap=()=>{enterFullscreen();};
-    document.addEventListener('pointerdown',onFirstTap,{once:true,capture:true,passive:true});
+    if(armed)return;
+    armed=true;
+    const onFirstTap=()=>{
+      armed=false;
+      GESTURE_EVENTS.forEach(ev=>document.removeEventListener(ev,onFirstTap,true));
+      enterFullscreen();
+    };
+    GESTURE_EVENTS.forEach(ev=>document.addEventListener(ev,onFirstTap,{capture:true,passive:true}));
   };
   arm();
   document.addEventListener('fullscreenchange',()=>{
