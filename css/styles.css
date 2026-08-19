@@ -198,33 +198,46 @@ input[type=range]{width:100%;accent-color:var(--acc);height:4px}
 .tc-steer.active{background:radial-gradient(circle,rgba(46,230,214,.35),rgba(46,230,214,.08));
   border-color:var(--acc);box-shadow:0 0 22px rgba(46,230,214,.5);color:var(--acc);transform:scale(.92)}
 #tc-pedals{position:absolute;pointer-events:none;right:calc(18px + env(safe-area-inset-right));
-  bottom:calc(9vh + 26px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:.75em;align-items:flex-end}
-.tc-btn{pointer-events:all;touch-action:none;display:flex;align-items:center;justify-content:center;
-  font-family:var(--fd);letter-spacing:.06em;color:var(--dim);border:2px solid var(--border);
-  background:rgba(255,255,255,.04);opacity:.92;transition:transform .08s,box-shadow .12s,background .12s,color .12s}
-.tc-gas,.tc-brake{width:clamp(58px,15vw,76px);height:clamp(58px,15vw,76px);border-radius:50%;font-size:1.3rem}
+  bottom:calc(9vh + 26px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:.6em;align-items:flex-end}
+/* rectangular icon-over-label buttons, matching the reference design's
+   FORWARD/BACKWARD buttons — replaces the old plain gas/brake circles */
+.tc-drivebtn{pointer-events:all;touch-action:none;width:5.6em;height:3.6em;border-radius:12px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.15em;
+  font-family:var(--fh);color:var(--dim);border:1.5px solid var(--border);
+  background:rgba(8,14,22,.55);backdrop-filter:blur(6px);opacity:.95;
+  transition:transform .08s,box-shadow .12s,background .12s,color .12s,border-color .12s}
+.tc-drive-ic{font-size:1.15rem;line-height:1}
+.tc-drive-lbl{font-size:.55rem;letter-spacing:.14em;font-weight:600}
 .tc-gas{border-color:rgba(46,204,112,.4)}
 .tc-brake{border-color:rgba(255,51,68,.4)}
-.tc-gas.active{background:radial-gradient(circle,rgba(46,204,112,.35),rgba(46,204,112,.08));
-  border-color:var(--grn);box-shadow:0 0 22px rgba(46,204,112,.5);color:var(--grn);transform:scale(.92)}
-.tc-brake.active{background:radial-gradient(circle,rgba(255,51,68,.35),rgba(255,51,68,.08));
-  border-color:var(--red);box-shadow:0 0 22px rgba(255,51,68,.5);color:var(--red);transform:scale(.92)}
-.tc-hand{width:clamp(58px,15vw,76px);height:clamp(34px,9vw,44px);border-radius:8px;
-  border-color:rgba(255,138,61,.4);font-size:.62rem}
-.tc-hand.active{background:radial-gradient(circle,rgba(255,138,61,.35),rgba(255,138,61,.08));
-  border-color:var(--acc2);box-shadow:0 0 22px rgba(255,138,61,.5);color:var(--acc2);transform:scale(.94)}
+.tc-gas.active{background:radial-gradient(circle,rgba(46,204,112,.3),rgba(46,204,112,.08));
+  border-color:var(--grn);box-shadow:0 0 22px rgba(46,204,112,.5);color:var(--grn);transform:scale(.96)}
+.tc-brake.active{background:radial-gradient(circle,rgba(255,51,68,.3),rgba(255,51,68,.08));
+  border-color:var(--red);box-shadow:0 0 22px rgba(255,51,68,.5);color:var(--red);transform:scale(.96)}
 #tc-extras{position:absolute;pointer-events:none;left:50%;transform:translateX(-50%);
   bottom:calc(18px + env(safe-area-inset-bottom));display:flex;gap:.75em}
-.tc-mini{pointer-events:all;touch-action:none;width:2.3em;height:2.3em;border-radius:50%;
+.tc-mini{pointer-events:all;touch-action:none;width:2.1em;height:2.1em;border-radius:50%;
   border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--dim);
-  display:flex;align-items:center;justify-content:center;font-size:.95rem;opacity:.85}
+  display:flex;align-items:center;justify-content:center;font-size:.9rem;opacity:.85}
 .tc-mini:active{border-color:var(--acc);color:var(--acc);background:rgba(46,230,214,.1)}
-/* manual gear shift buttons — stacked just above the gas/brake pedals
-   so the driving thumb can reach them without leaving that corner */
+/* drift ("tc-hand") is a press-and-hold button living in this row now,
+   so it needs the JS-driven .active state (held down), not just :active */
+#tc-hand.active{border-color:var(--acc2);color:var(--acc2);background:rgba(255,138,61,.18);
+  box-shadow:0 0 16px rgba(255,138,61,.45)}
+/* manual gear shift — a single labeled box (+ / GEAR / −) fixed under
+   the minimap on the right edge, matching the reference layout, instead
+   of two separate loose buttons */
 #tc-gears{position:absolute;pointer-events:none;right:calc(18px + env(safe-area-inset-right));
-  bottom:calc(9vh + 26px + 190px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:.65em;align-items:flex-end}
-.tc-gear{width:2.5em;height:2.5em;font-size:1.5rem;font-weight:700;line-height:1;color:var(--acc2);border-color:rgba(255,138,61,.35)}
-.tc-gear:active{border-color:var(--acc2);color:var(--acc2);background:rgba(255,138,61,.15)}
+  top:calc(1.1em + 116px + .8em);display:flex;flex-direction:column;align-items:center;
+  width:4.4em;border-radius:12px;border:1.5px solid rgba(255,138,61,.35);
+  background:rgba(8,14,22,.55);backdrop-filter:blur(6px);overflow:hidden}
+.tc-gearbtn{pointer-events:all;touch-action:none;width:100%;text-align:center;
+  padding:.3em 0;font-family:var(--fd);font-size:1.3rem;font-weight:700;line-height:1;
+  color:var(--acc2);transition:background .12s,color .12s}
+.tc-gearbtn:active{background:rgba(255,138,61,.22);color:#fff}
+.tc-gearlbl{width:100%;text-align:center;padding:.2em 0;font-size:.5rem;
+  letter-spacing:.16em;color:var(--dim);border-top:1px solid rgba(255,138,61,.2);
+  border-bottom:1px solid rgba(255,138,61,.2)}
 /* toast (sleek top notification banner) */
 #toast{position:fixed;top:24px;left:50%;transform:translate(-50%,-16px) scale(.92);
   font-family:var(--fh);font-size:.9rem;font-weight:700;letter-spacing:.08em;
@@ -485,15 +498,14 @@ input[type=range]{width:100%;accent-color:var(--acc);height:4px}
      clear of the gauge's ~120px footprint, instead of a viewport-relative
      offset that only happened to work on taller screens. */
   #tc-wheel{bottom:calc(135px + env(safe-area-inset-bottom))}
-  #tc-pedals{bottom:calc(9vh + 12px + env(safe-area-inset-bottom))}
-  /* gear shift used to be bottom-anchored 190px above the pedals, which
-     on a short screen landed it right on top of the minimap instead —
-     anchored under the minimap now so it can never collide with either,
-     nudged in from the edge (left) and away from the map (down) so it's
-     easy to tap on its own. */
-  #tc-gears{top:calc(112px + env(safe-area-inset-top));bottom:auto;
-    right:calc(34px + env(safe-area-inset-right));
-    flex-direction:row;gap:.5em}
+  /* gear box and forward/backward are both anchored from the top now,
+     stacked directly under the (smaller, 84px) minimap in a fixed chain,
+     so they can never collide with the map or each other regardless of
+     the exact screen height. */
+  #tc-gears{top:calc(112px + env(safe-area-inset-top));right:calc(18px + env(safe-area-inset-right))}
+  #tc-pedals{top:calc(206px + env(safe-area-inset-top));bottom:auto;
+    right:calc(18px + env(safe-area-inset-right))}
+  .tc-drivebtn{width:5em;height:3.1em}
   #tc-extras{bottom:calc(10px + env(safe-area-inset-bottom))}
   /* the "VIEW MODE / THIRD PERSON" label sat bottom-right and overlapped
      the pedals/drift cluster in the same corner — dropped here like the

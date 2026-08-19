@@ -14,7 +14,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>NEXUS DRIVE — AI Car Simulation</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css?v=20260819_v10">
+<link rel="stylesheet" href="css/styles.css?v=20260819_v11">
 </head>
 <body>
 <canvas id="c" tabindex="0"></canvas>
@@ -282,18 +282,23 @@
       <div class="tc-steer" id="tc-left">◀</div>
       <div class="tc-steer" id="tc-right">▶</div>
     </div>
-    <div id="tc-pedals">
-      <div class="tc-btn tc-gas" id="tc-gas">▲</div>
-      <div class="tc-btn tc-brake" id="tc-brake">▼</div>
-      <div class="tc-btn tc-hand" id="tc-hand">DRIFT</div>
-    </div>
     <div id="tc-gears">
-      <div class="tc-mini tc-gear" id="tc-gear-down" title="Gear Down">−</div>
-      <div class="tc-mini tc-gear" id="tc-gear-up" title="Gear Up">+</div>
+      <div class="tc-gearbtn" id="tc-gear-up" title="Gear Up">+</div>
+      <div class="tc-gearlbl">GEAR</div>
+      <div class="tc-gearbtn" id="tc-gear-down" title="Gear Down">−</div>
+    </div>
+    <div id="tc-pedals">
+      <div class="tc-drivebtn tc-gas" id="tc-gas" title="Forward">
+        <span class="tc-drive-ic">▲</span><span class="tc-drive-lbl">FORWARD</span>
+      </div>
+      <div class="tc-drivebtn tc-brake" id="tc-brake" title="Backward">
+        <span class="tc-drive-ic">▼</span><span class="tc-drive-lbl">BACKWARD</span>
+      </div>
     </div>
     <div id="tc-extras">
       <div class="tc-mini" id="tc-horn" title="Horn">📯</div>
       <div class="tc-mini" id="tc-lights" title="Headlights">💡</div>
+      <div class="tc-mini" id="tc-hand" title="Drift">🌀</div>
       <div class="tc-mini" id="tc-cam" title="Camera">🎥</div>
       <div class="tc-mini" id="tc-recover" title="Recover">↺</div>
       <div class="tc-mini" id="tc-fs" title="Fullscreen">⛶</div>
