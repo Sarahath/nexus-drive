@@ -239,23 +239,31 @@ async function renderPlayOnMobileQR(){
   pmobQr.innerHTML=qr.createSvgTag({cellSize:4,margin:2});
 }
 
+// Pulled out of the "mode-free" click handler so the exact same start-up
+// logic can be triggered programmatically right after loading finishes
+// (auto-start into Free Roam with zero taps), not just from a real click
+// on the mode-select card. The mode-select screen itself is untouched and
+// still reachable normally (e.g. "Back to Menu" from missions/game-over),
+// this just skips waiting on it the very first time the page opens.
+function startFreeRoam(){
+  gameMode='free';
+  // Free Mode must always start from a fully stationary, fully manual
+  // car — reset speed/steer/gear/autopilot state and clear any input
+  // that might still be "held" from before this screen (e.g. a
+  // keyboard key or touch button pressed while on the menu), so the
+  // car never inherits leftover motion or AI control from elsewhere.
+  Car.reset();W.dest=null;W.ai.car=false;clearMissionProps();W.activeMission=null;
+  Inp.keys={};Inp.throttle=0;Inp.brake=0;Inp.steer=0;Inp.hand=false;
+  TouchCtl.throttle=0;TouchCtl.brake=0;TouchCtl.steer=0;TouchCtl.hand=false;
+  document.getElementById('scr-mode').classList.remove('show');
+  appState='driving';
+  document.getElementById('hud').classList.add('show');
+  document.getElementById('c').focus();
+  toast('🏎️ Free Roam Mode Started!');
+}
+
 function wireModeSelect(){
-  document.getElementById('mode-free').onclick=()=>{
-    gameMode='free';
-    // Free Mode must always start from a fully stationary, fully manual
-    // car — reset speed/steer/gear/autopilot state and clear any input
-    // that might still be "held" from before this screen (e.g. a
-    // keyboard key or touch button pressed while on the menu), so the
-    // car never inherits leftover motion or AI control from elsewhere.
-    Car.reset();W.dest=null;W.ai.car=false;clearMissionProps();W.activeMission=null;
-    Inp.keys={};Inp.throttle=0;Inp.brake=0;Inp.steer=0;Inp.hand=false;
-    TouchCtl.throttle=0;TouchCtl.brake=0;TouchCtl.steer=0;TouchCtl.hand=false;
-    document.getElementById('scr-mode').classList.remove('show');
-    appState='driving';
-    document.getElementById('hud').classList.add('show');
-    document.getElementById('c').focus();
-    toast('🏎️ Free Roam Mode Started!');
-  };
+  document.getElementById('mode-free').onclick=()=>startFreeRoam();
   
   document.getElementById('mode-mission').onclick=()=>{
     gameMode='mission';

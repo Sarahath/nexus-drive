@@ -105,9 +105,20 @@ function runLoad(){
         setTimeout(()=>{
           const loadEl=document.getElementById('scr-load');
           if(loadEl)loadEl.classList.add('out');
-          appState='modeselect';
-          const modeEl=document.getElementById('scr-mode');
-          if(modeEl)modeEl.classList.add('show');
+          // Auto-start straight into Free Roam the moment loading finishes —
+          // no tap on the mode-select screen required. The mode-select UI
+          // itself is untouched and still opens normally later (e.g. via
+          // "Back to Menu" from a mission/game-over screen or the pause
+          // menu's "Switch to Mission Mode"), this only skips it as the
+          // very first thing the player would otherwise have to tap.
+          if(typeof startFreeRoam==='function'){
+            startFreeRoam();
+          }else{
+            // Fallback in the unlikely case ui-menus.js hasn't loaded yet.
+            appState='modeselect';
+            const modeEl=document.getElementById('scr-mode');
+            if(modeEl)modeEl.classList.add('show');
+          }
         },40);
         return;
       }

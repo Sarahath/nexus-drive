@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#030508">
+<!-- Mobile immersive/fullscreen hints: these make the game behave like a
+     standalone app when launched or added to the home screen, and let
+     the safe-area-inset-* CSS vars (already used by the HUD/touch
+     controls) account for notches/home-indicators correctly. -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>NEXUS DRIVE — AI Car Simulation</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css?v=20260819_mobile1">
+</head>
+<body>
+<canvas id="c" tabindex="0"></canvas>
+
+<!-- LOADING -->
+<div id="scr-load">
+  <div class="ld-ring"></div><div class="ld-ring"></div><div class="ld-ring"></div>
+  <div class="ld-logo">NEXUS DRIVE</div>
+  <div class="ld-sub">AI Car Simulation System</div>
+  <div class="ld-track"><div class="ld-fill" id="lf"></div></div>
+  <div class="ld-meta"><span id="lst">Initializing…</span><span id="lpct">0%</span></div>
+  <div class="ld-tips" id="ltip"></div>
+</div>
+
+<!-- MODE SELECT -->
+<div id="scr-mode">
+  <div class="mode-hdr">RACE DRIVE</div>
+  <div class="mode-sub">SPEED · SKILL · WIN</div>
+  <div class="mode-grid">
+    <div class="mode-card mode-free-card" id="mode-free">
+      <div class="mode-badge green-bg">FREE ROAM</div>
+      <div class="mode-ico">🏎️</div>
+      <div class="mode-ttl">FREE ROAM MODE</div>
+      <div class="mode-desc">Drive freely. Explore the 3D city. No limits!</div>
+      <div class="mode-go btn-green">▶ FREE ROAM</div>
+    </div>
+    <div class="mode-card mode-mission-card" id="mode-mission">
+      <div class="mode-badge blue-bg">10 MISSIONS</div>
+      <div class="mode-ico">🎯</div>
+      <div class="mode-ttl">CAREER MISSIONS</div>
+      <div class="mode-desc">Complete 10 unique missions & challenges across the city.</div>
+      <div class="mode-go btn-blue">▶ MISSION CAMPAIGN</div>
+    </div>
+  </div>
+  <div class="pmob-box" id="pmob-box" style="display:none">
+    <div class="pmob-ttl">📱 PLAY ON MOBILE</div>
+    <div class="pmob-qr" id="pmob-qr"></div>
+    <div class="pmob-sub" id="pmob-sub">Scan with your phone to open this same game in Mobile Mode</div>
+  </div>
+</div>
+
+<!-- MISSION SELECTION GRID (4 CARDS MATCHING REFERENCE IMAGE) -->
+<div id="scr-mis-select" class="modal-overlay">
+  <div class="mis-select-panel">
+    <div class="ms-hdr">
+      <div class="ms-title">MISSION MODE</div>
+      <div class="ms-sub">SELECT A MISSION</div>
+    </div>
+    <div class="mis-grid-4">
+      <div class="mis-card" id="mcard-1" data-mi="0">
+        <div class="mcard-num">1</div>
+        <div class="mcard-ttl">TIME TRIAL</div>
+        <div class="mcard-ico">⏱️</div>
+        <div class="mcard-desc">Reach the finish line within the time limit!</div>
+        <div class="mcard-btn btn-green">▶ START</div>
+      </div>
+      <div class="mis-card" id="mcard-2" data-mi="1">
+        <div class="mcard-num">2</div>
+        <div class="mcard-ttl">PARKING CHALLENGE</div>
+        <div class="mcard-ico">🅿️</div>
+        <div class="mcard-desc">Park the car in the box without touching the lines!</div>
+        <div class="mcard-btn btn-blue">▶ START</div>
+      </div>
+      <div class="mis-card" id="mcard-3" data-mi="2">
+        <div class="mcard-num">3</div>
+        <div class="mcard-ttl">OBSTACLE DODGE</div>
+        <div class="mcard-ico">🚧</div>
+        <div class="mcard-desc">Avoid all obstacles and complete the lap!</div>
+        <div class="mcard-btn btn-orange">▶ START</div>
+      </div>
+      <div class="mis-card" id="mcard-4" data-mi="3">
+        <div class="mcard-num">4</div>
+        <div class="mcard-ttl">CHECKPOINT RALLY</div>
+        <div class="mcard-ico">🚩</div>
+        <div class="mcard-desc">Pass through all checkpoints in order before time runs out!</div>
+        <div class="mcard-btn btn-purple">▶ START</div>
+      </div>
+    </div>
+    <div class="ms-ftr">
+      <button class="btn-grey" id="mis-select-back">← BACK TO MENU</button>
+    </div>
+  </div>
+</div>
+
+<!-- MISSION BRIEFING -->
+<div id="scr-brief">
+  <div class="brief-panel">
+    <div class="brief-tag" id="brief-tag">MISSION 1 OF 7</div>
+    <div class="brief-ttl"><span id="brief-ico">🎯</span><span id="brief-name">Mission Name</span></div>
+    <div class="brief-obj" id="brief-obj">Objective text</div>
+    <ul class="brief-list" id="brief-list"></ul>
+    <div class="pm-acts">
+      <div class="pbtn pri" id="brief-start" style="pointer-events:all">▶ START MISSION</div>
+      <div class="pbtn" id="brief-exit" style="pointer-events:all">← Back to Menu</div>
+    </div>
+  </div>
+</div>
+
+<!-- MISSION RESULT (complete / failed) -->
+<div id="scr-misend">
+  <div class="brief-panel" style="text-align:center">
+    <div class="brief-tag" id="me-tag">MISSION COMPLETE</div>
+    <div class="brief-ttl" style="justify-content:center" id="me-ttl">✅ Mission Name</div>
+    <div class="res-big" id="me-score">0</div>
+    <div class="res-perf" id="me-perf">—</div>
+    <div style="text-align:left;margin-top:1em">
+      <div class="res-row"><span>Time Taken</span><span id="me-time">0s</span></div>
+      <div class="res-row"><span>Collisions / Penalties</span><span id="me-col">0</span></div>
+      <div class="res-row"><span>Driving Performance</span><span id="me-drv">—</span></div>
+    </div>
+    <div class="pm-acts">
+      <div class="pbtn pri" id="me-next" style="pointer-events:all">Next Mission →</div>
+      <div class="pbtn" id="me-retry" style="pointer-events:all">↺ Retry Mission</div>
+      <div class="pbtn" id="me-exit" style="pointer-events:all">← Back to Menu</div>
+    </div>
+  </div>
+</div>
+
+<!-- CAMPAIGN COMPLETE -->
+<div id="scr-campaign">
+  <div class="brief-panel" style="text-align:center">
+    <div class="brief-tag">EXPO DEMO COMPLETE</div>
+    <div class="brief-ttl" style="justify-content:center">🏆 All Missions Complete!</div>
+    <div class="res-big" id="cc-score">0</div>
+    <div class="res-perf" id="cc-perf">—</div>
+    <div class="mp-list" id="cc-list"></div>
+    <div class="pm-acts">
+      <div class="pbtn pri" id="cc-replay" style="pointer-events:all">↺ Replay Missions</div>
+      <div class="pbtn" id="cc-free" style="pointer-events:all">🌆 Free Roam</div>
+    </div>
+  </div>
+</div>
+
+<!-- GAME OVER (car value hit 0) -->
+<div id="scr-gameover">
+  <div class="brief-panel" style="text-align:center">
+    <div class="brief-tag">VEHICLE TOTALED</div>
+    <div class="brief-ttl" style="justify-content:center">🚨 GAME OVER</div>
+    <div class="brief-obj">Your car took too much damage and its value hit 0% — it can no longer continue.</div>
+    <div style="text-align:left;margin-top:1em">
+      <div class="res-row"><span>Collisions Taken</span><span id="go-col">0</span></div>
+      <div class="res-row"><span>Time Survived</span><span id="go-time">0s</span></div>
+    </div>
+    <div class="pm-acts">
+      <div class="pbtn pri" id="go-restart" style="pointer-events:all">↺ Restart Drive</div>
+      <div class="pbtn" id="go-exit" style="pointer-events:all">← Back to Menu</div>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTOMIZATION -->
+<div id="scr-cu">
+  <div class="cu-hdr">
+    <div class="cu-brand">NEXUS<em>DRIVE</em> &nbsp;—&nbsp; Vehicle Studio</div>
+    <div class="cu-vtabs">
+      <div class="vtab on" data-vt="car">🚗 Car</div>
+    </div>
+  </div>
+  <div class="cu-body">
+    <div class="cu-side" id="cu-side"></div>
+    <div class="cu-main" id="cu-main"></div>
+    <div class="cu-prev">
+      <canvas id="cu-canvas"></canvas>
+      <div class="cu-vname" id="cu-vn">Vantis GT-R</div>
+      <div class="cu-vtag" id="cu-vtag">Prototype · Smart City Edition</div>
+      <div class="cu-stats" id="cu-stats"></div>
+      <div class="cu-chips" id="cu-chips"></div>
+    </div>
+  </div>
+  <div class="cu-ftr">
+    <button class="cu-btn sec" id="cu-rst">↺ Reset Defaults</button>
+    <button class="cu-btn pri" id="cu-go">▶ START SIMULATION</button>
+  </div>
+</div>
+
+<!-- HUD -->
+<div id="hud">
+  <div class="htl">
+    <div id="veh-ind">🚗 VEHICLE: CAR</div>
+    <div class="hpanel hrow">
+      <div class="hi"><div class="k">Clock</div><div class="v" id="h-time">06:00</div></div>
+      <div class="hi"><div class="k">Weather</div><div class="v" id="h-wx">☀ Sunny</div></div>
+      <div class="hi"><div class="k">District</div><div class="v" id="h-dist">Central</div></div>
+    </div>
+    <div class="hpanel adas-row" id="adas-row"></div>
+    <div id="sensor-hud" class="hpanel"></div>
+    <div id="nav-hud" class="hpanel">
+      <div class="nav-arr" id="nav-arr">▲</div>
+      <div class="nav-inf"><div class="k">Navigation</div><div class="v" id="nav-dist">-- m</div></div>
+    </div>
+    <div id="mis-hud" class="hpanel">
+      <div class="mis-title" id="mis-title">ACTIVE MISSION</div>
+      <div class="mis-obj" id="mis-obj">–</div>
+      <div class="mis-bar"><i id="mis-prog" style="width:0%"></i></div>
+      <div class="mis-sub" id="mis-sub"></div>
+    </div>
+    <div id="fps-hud" class="hpanel show">FPS <span id="fv">60</span> · <span id="fm">16</span>ms</div>
+  </div>
+
+  <div class="htr">
+    <div class="mm" id="mm-wrap"><canvas id="mm-canvas" width="172" height="172"></canvas></div>
+    <div class="mm-lbl">Tap map · M key</div>
+  </div>
+
+  <!-- speedometer cluster -->
+  <div class="hbl">
+    <div style="display:flex;align-items:flex-end;gap:1em">
+      <div class="gauge">
+        <svg viewBox="0 0 162 162">
+          <circle cx="81" cy="81" r="70" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="8"/>
+          <circle id="spd-arc" cx="81" cy="81" r="70" fill="none" stroke="url(#sg)"
+            stroke-width="8" stroke-linecap="round" stroke-dasharray="440" stroke-dashoffset="440"/>
+          <defs><linearGradient id="sg" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#17847a"/><stop offset="100%" stop-color="#2ee6d6"/>
+          </linearGradient></defs>
+        </svg>
+        <div class="g-inner">
+          <div class="g-spd" id="g-spd">0</div>
+          <div class="g-unit" id="g-unit">KM/H</div>
+          <div class="g-rpm" id="g-rpm">IDLE</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:.55em;margin-bottom:.25em">
+        <div class="gearbox" id="gearbox">P</div>
+        <div class="barw">
+          <div class="bk"><span id="b-lbl">FUEL</span><span id="b-pct">100%</span></div>
+          <div class="btrack"><i id="b-fill" style="width:100%;background:linear-gradient(90deg,#a17c1a,#ff8a3d)"></i></div>
+        </div>
+        <div class="barw">
+          <div class="bk"><span>ENGINE</span><span id="rpm-pct">IDLE</span></div>
+          <div class="btrack"><i id="rpm-fill" style="width:0%;background:linear-gradient(90deg,#17847a,#2ee6d6)"></i></div>
+        </div>
+        <div class="barw">
+          <div class="bk"><span>CAR VALUE</span><span id="cv-pct">100%</span></div>
+          <div class="btrack"><i id="cv-fill" style="width:100%;background:linear-gradient(90deg,#17847a,#2ee6d6)"></i></div>
+        </div>
+      </div>
+    </div>
+    <div class="hpanel keys">
+      <b>W/S</b> Drive &nbsp;·&nbsp; <b>A</b> Left / <b>D</b> Right &nbsp;·&nbsp;
+      <b>Space</b> Brake &nbsp;·&nbsp; <b>C</b> Camera &nbsp;·&nbsp;
+      <b>1/2</b> Gear Up/Down &nbsp;·&nbsp;
+      <b>M</b> Map &nbsp;·&nbsp;
+      <b>P</b> Auto-Park &nbsp;·&nbsp; <b>H</b> Horn &nbsp;·&nbsp; <b>L</b> Headlights &nbsp;·&nbsp;
+      <b>R</b> Recover &nbsp;·&nbsp; <b>Esc</b> Pause
+    </div>
+    <div class="hpanel keys" id="gp-hint" style="display:none">
+      🎮 <b>Controller connected</b> &nbsp;·&nbsp; Stick Steer &nbsp;·&nbsp; Triggers Gas/Brake &nbsp;·&nbsp;
+      <b>A</b> Handbrake &nbsp;·&nbsp; <b>LB/RB</b> Gear &nbsp;·&nbsp; <b>Y</b> Camera &nbsp;·&nbsp;
+      <b>B</b> Horn &nbsp;·&nbsp; <b>X</b> Lights &nbsp;·&nbsp; <b>Start</b> Pause
+    </div>
+  </div>
+
+  <div class="hbr">
+    <div class="camtag">VIEW MODE<b id="cam-lbl">THIRD PERSON</b></div>
+  </div>
+
+  <div id="ap-hud">🅿 AUTO PARKING IN PROGRESS…</div>
+  <div id="toast">EVENT</div>
+  <div id="hit-flash"></div>
+
+  <!-- on-screen touch driving controls (auto-shown on touch devices) -->
+  <div id="touchctl">
+    <div id="tc-wheel">
+      <div class="tc-steer" id="tc-left">◀</div>
+      <div class="tc-steer" id="tc-right">▶</div>
+    </div>
+    <div id="tc-gears">
+      <div class="tc-gearbtn" id="tc-gear-up" title="Gear Up">+</div>
+      <div class="tc-gearlbl">GEAR</div>
+      <div class="tc-gearbtn" id="tc-gear-down" title="Gear Down">−</div>
+    </div>
+    <div id="tc-pedals">
+      <div class="tc-drivebtn tc-gas" id="tc-gas" title="Forward">
+        <span class="tc-drive-ic">▲</span><span class="tc-drive-lbl">FORWARD</span>
+      </div>
+      <div class="tc-drivebtn tc-brake" id="tc-brake" title="Backward">
+        <span class="tc-drive-ic">▼</span><span class="tc-drive-lbl">BACKWARD</span>
+      </div>
+    </div>
+    <div id="tc-extras">
+      <div class="tc-mini" id="tc-horn" title="Horn">📯</div>
+      <div class="tc-mini" id="tc-lights" title="Headlights">💡</div>
+      <div class="tc-mini" id="tc-hand" title="Drift">🌀</div>
+      <div class="tc-mini" id="tc-cam" title="Camera">🎥</div>
+      <div class="tc-mini" id="tc-recover" title="Recover">↺</div>
+      <div class="tc-mini" id="tc-fs" title="Fullscreen">⛶</div>
+    </div>
+  </div>
+</div>
+
+<!-- TELEMETRY -->
+<div id="telem">
+  <div class="tel-panel">
+    <div class="tel-item"><div class="k">Speed</div><div class="v" id="tl-spd">0</div></div>
+    <div class="tel-sep"></div>
+    <div class="tel-item"><div class="k">Heading</div><div class="v" id="tl-hdg">N</div></div>
+    <div class="tel-sep"></div>
+    <div class="tel-item"><div class="k">Fuel</div><div class="v" id="tl-fuel">100%</div></div>
+    <div class="tel-sep"></div>
+    <div class="tel-item"><div class="k">Car Value</div><div class="v" id="tl-cv">100%</div></div>
+    <div class="tel-sep"></div>
+    <div class="tel-item"><div class="k">AI</div><div class="v" id="tl-ai">Active</div></div>
+  </div>
+</div>
+
+<!-- MAP -->
+<div id="map-modal">
+  <div class="map-panel">
+    <div class="map-hd">
+      <div class="map-ttl">🗺 CITY NAVIGATION · GPS · SENSORS</div>
+      <div class="map-x" id="map-x">✕ CLOSE [M]</div>
+    </div>
+    <canvas id="map-canvas" width="600" height="600"></canvas>
+    <div class="map-ctrl">
+      <button class="mbtn on" id="mb-car">🚗 Track Car</button>
+      <button class="mbtn pri" id="mb-park">🅿 Auto-Park</button>
+      <button class="mbtn" id="mb-fuel">⛽ Fuel Station</button>
+      <button class="mbtn" id="mb-clr">✕ Clear Route</button>
+      <div class="map-zoom">
+        <button class="mbtn" id="mz-in">＋</button>
+        <button class="mbtn" id="mz-out">－</button>
+      </div>
+    </div>
+    <div class="map-leg">
+      <div class="mli"><div class="mli-dot" style="background:#2ee6d6"></div>Car</div>
+      <div class="mli"><div class="mli-dot" style="background:#ff3344"></div>Destination</div>
+      <div class="mli"><div class="mli-dot" style="background:#2ecc70"></div>Free Parking</div>
+      <div class="mli"><div class="mli-dot" style="background:#ffcc00"></div>Fuel/Charge</div>
+      <div class="mli"><div class="mli-dot" style="background:#ff8a3d"></div>AI Traffic</div>
+      <div class="mli"><div class="mli-dot" style="background:rgba(255,255,255,.3)"></div>Click=Destination</div>
+    </div>
+  </div>
+</div>
+
+<!-- PAUSE -->
+<div id="pause">
+  <div class="pm">
+    <div class="pm-ttl">⏸ SIMULATION PAUSED</div>
+    <div class="pm-row"><label>Camera Mode</label>
+      <div class="seg" id="seg-cam">
+        <div class="sb on" data-c="third">3rd</div>
+        <div class="sb" data-c="cockpit">Cockpit</div>
+        <div class="sb" data-c="hood">Hood</div>
+        <div class="sb" data-c="free">Free</div>
+      </div></div>
+    <div class="pm-row"><label>Weather</label>
+      <div class="seg" id="seg-wx">
+        <div class="sb on" data-w="sunny">☀ Sunny</div>
+        <div class="sb" data-w="cloudy">☁ Cloudy</div>
+        <div class="sb" data-w="rain">🌧 Rain</div>
+        <div class="sb" data-w="fog">🌫 Fog</div>
+        <div class="sb" data-w="night">🌙 Night</div>
+      </div></div>
+    <div class="pm-row"><label>Time of Day<span id="tod-v">06:00</span></label>
+      <input type="range" id="tod-r" min="0" max="24" step=".1" value="6"></div>
+    <div class="pm-row"><label>Volume<span id="vol-v">70%</span></label>
+      <input type="range" id="vol-r" min="0" max="100" value="70"></div>
+    <div class="pm-row"><label>ADAS Systems</label>
+      <div class="seg" id="seg-adas">
+        <div class="sb on" data-a="acc">ACC</div>
+        <div class="sb on" data-a="aeb">AEB</div>
+        <div class="sb on" data-a="lka">LKA</div>
+        <div class="sb on" data-a="bsm">BSM</div>
+        <div class="sb on" data-a="tsr">TSR</div>
+      </div></div>
+    <div class="pm-row"><label>AI Autopilot</label>
+      <div class="seg" id="seg-ai">
+        <div class="sb" data-ai="car">Car Autopilot</div>
+        <div class="sb" data-ai="off">Manual</div>
+      </div></div>
+    <div class="pm-row"><label>Telemetry Panel</label>
+      <div class="seg" id="seg-tel">
+        <div class="sb" data-t="off">Off</div>
+        <div class="sb on" data-t="on">On</div>
+      </div></div>
+    <div class="pm-row"><label>Phone Control (Wi-Fi LAN)</label>
+      <div class="pbtn" id="pm-phone" style="pointer-events:all">📱 Pair a Phone…</div>
+      <div class="remote-note" id="rem-note">Keyboard active</div></div>
+    <div class="pm-acts">
+      <div class="pbtn pri" id="pm-res">▶ RESUME SIMULATION</div>
+      <div class="pbtn" id="pm-mis">🎯 Mission Select</div>
+      <div class="pbtn" id="pm-rst">↺ Restart</div>
+      <div class="pbtn red" id="pm-exit">← Exit to Garage</div>
+    </div>
+  </div>
+</div>
+
+<div id="phone-modal">
+  <div class="pm" style="max-width:400px;text-align:center">
+    <div class="pm-ttl">📱 PHONE CONTROL</div>
+    <div id="phone-precheck">
+      <p class="phc-p" id="phc-precheck-note">Run the small local server once (see the <code>phone-control</code> folder next to this file), then connect below. Phone and computer must be on the <b>same Wi-Fi network</b>.</p>
+      <label class="phc-lbl" id="phc-addr-lbl">Server address</label>
+      <input id="phc-addr" class="phc-input" placeholder="ws://192.168.1.X:8787" autocomplete="off">
+      <div class="pbtn pri" id="phc-start" style="pointer-events:all">Generate Pairing Code</div>
+    </div>
+    <div id="phone-live" style="display:none">
+      <div id="phc-qr"></div>
+      <div class="phc-code" id="phc-code">----</div>
+      <div class="phc-status" id="phc-status">Waiting for phone…</div>
+      <div class="pbtn" id="phc-stop" style="pointer-events:all">Disconnect</div>
+    </div>
+    <div class="pbtn" id="phc-close" style="pointer-events:all;margin-top:.6em">Close</div>
+  </div>
+</div>
+
+<!-- MULTIPLAYER LOBBY -->
+<div id="scr-mp-lobby">
+  <div class="pm mp-lobby-panel" style="max-width:760px;text-align:center">
+    <div class="pm-ttl">MULTIPLAYER MODE</div>
+    <div class="pm-sub-tag">Scan QR Code to Join</div>
+    
+    <div id="mp-precheck">
+      <p class="phc-p" id="mp-precheck-note">Connect both smartphones via local Wi-Fi / Relay Server to race head-to-head on the main display.</p>
+      <label class="phc-lbl" id="mp-addr-lbl">Server address</label>
+      <input id="mp-addr" class="phc-input" placeholder="ws://192.168.1.X:8787" autocomplete="off">
+      <div class="pbtn pri btn-purple" id="mp-start" style="pointer-events:all;margin-top:.6em">OPEN MULTIPLAYER LOBBY</div>
+      <div class="pbtn btn-grey" id="mp-precheck-back" style="pointer-events:all;margin-top:.6em">← BACK TO MENU</div>
+    </div>
+    
+    <div id="mp-live" style="display:none">
+      <div class="mp-qr-row">
+        <div class="mp-qr-card p1">
+          <div class="mp-p-lbl p1-hdr">PLAYER 1</div>
+          <div class="mp-qr-box" id="mp-qr-p1"></div>
+          <div class="mp-status" id="mp-status-p1">Scan to Join as PLAYER 1</div>
+        </div>
+        <div class="mp-qr-card p2">
+          <div class="mp-p-lbl p2-hdr">PLAYER 2</div>
+          <div class="mp-qr-box" id="mp-qr-p2"></div>
+          <div class="mp-status" id="mp-status-p2">Scan to Join as PLAYER 2</div>
+        </div>
+      </div>
+      
+      <div class="mp-how-to-play">
+        <div class="htp-title">HOW TO PLAY</div>
+        <ol class="htp-list">
+          <li>Player 1 and Player 2 scan their QR codes</li>
+          <li>Both players connected</li>
+          <li>Countdown will start automatically</li>
+          <li>Race and be the first to cross the finish line!</li>
+        </ol>
+        <div class="htp-waiting" id="mp-lobby-wait">Waiting for both players to join...</div>
+      </div>
+      
+      <div class="pbtn btn-grey" id="mp-cancel" style="pointer-events:all;margin-top:.8em">← Cancel &amp; Return to Menu</div>
+    </div>
+  </div>
+</div>
+
+<!-- MULTIPLAYER RACE COUNTDOWN -->
+<div class="mp-countdown-ov" id="mp-countdown-ov">
+  <div class="mp-countdown-num" id="mp-countdown-num">3</div>
+</div>
+<div class="mp-split-div" id="mp-split-div" style="display:none"></div>
+<div class="mp-split-lbl" id="mp-lbl-p1" style="display:none">🟢 PLAYER 1 (120 KM/H)</div>
+<div class="mp-split-lbl" id="mp-lbl-p2" style="display:none">🟠 PLAYER 2 (118 KM/H)</div>
+
+<!-- MULTIPLAYER WINNER RESULT (MATCHING REFERENCE IMAGE) -->
+<div id="scr-mp-result" class="modal-overlay">
+  <div class="mp-win-panel">
+    <div class="win-trophy-ico">🏆</div>
+    <div class="win-tag">RACE RESULTS</div>
+    <div id="mp-result-ttl" class="win-title">PLAYER 1 WINS!</div>
+    <p class="phc-p" id="mp-result-sub">First to cross the finish line!</p>
+    <div class="pm-acts win-acts">
+      <div class="pbtn btn-green" id="mp-again" style="pointer-events:all">PLAY AGAIN</div>
+      <div class="pbtn btn-grey" id="mp-menu" style="pointer-events:all">MAIN MENU</div>
+    </div>
+  </div>
+</div>
+
+<div id="veil"></div>
+
+<!-- ROTATE-DEVICE PROMPT — programmatic orientation lock only works on
+     Android Chrome and only inside fullscreen; iOS Safari has no API to
+     force it at all, so this guides the player to rotate manually
+     whenever the phone is held in portrait. Purely visual, doesn't
+     touch any game logic underneath. -->
+<div id="rotate-prompt">
+  <div class="rot-ico">📱</div>
+  <div class="rot-ttl">ROTATE YOUR DEVICE</div>
+  <div class="rot-sub">NEXUS DRIVE is best played in landscape mode. Turn your phone sideways for the full experience.</div>
+  <div class="rot-skip" id="rot-skip">Continue in Portrait</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="js/vendor-qrcode.js?v=20260819_v42"></script>
+<script src="js/config.js?v=20260819_v42"></script>
+<script src="js/textures-models.js?v=20260819_v42"></script>
+<script src="js/city-world.js?v=20260819_v42"></script>
+<script src="js/navigation.js?v=20260819_v42"></script>
+<script src="js/car-controller.js?v=20260819_v42"></script>
+<script src="js/input-controls.js?v=20260819_v42"></script>
+<script src="js/effects.js?v=20260819_v42"></script>
+<script src="js/camera.js?v=20260819_v42"></script>
+<script src="js/world-update.js?v=20260819_v42"></script>
+<script src="js/hud-minimap.js?v=20260819_v42"></script>
+<script src="js/audio.js?v=20260819_v42"></script>
+<script src="js/ui-menus.js?v=20260819_v42"></script>
+<script src="js/missions.js?v=20260819_v42"></script>
+<script src="js/customization.js?v=20260819_v42"></script>
+<script src="js/renderer-init.js?v=20260819_v42"></script>
+<script src="js/main.js?v=20260819_v42"></script>
+</body>
+</html>
