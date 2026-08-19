@@ -480,9 +480,25 @@ input[type=range]{width:100%;accent-color:var(--acc);height:4px}
      raised from the original tight-together layout, just by a smaller,
      screen-height-appropriate amount, and gaps stay generous so buttons
      don't sit close enough to mis-tap. */
-  #tc-wheel,#tc-pedals{bottom:calc(9vh + 12px + env(safe-area-inset-bottom))}
-  #tc-gears{bottom:calc(9vh + 12px + 190px + env(safe-area-inset-bottom))}
+  /* steering wheel used to sit at the same bottom offset as the gauge
+     cluster (.hbl) and land directly on top of it. Anchored higher here,
+     clear of the gauge's ~120px footprint, instead of a viewport-relative
+     offset that only happened to work on taller screens. */
+  #tc-wheel{bottom:calc(135px + env(safe-area-inset-bottom))}
+  #tc-pedals{bottom:calc(9vh + 12px + env(safe-area-inset-bottom))}
+  /* gear shift used to be bottom-anchored 190px above the pedals, which
+     on a short screen landed it right on top of the minimap instead —
+     anchored under the minimap now so it can never collide with either,
+     nudged in from the edge (left) and away from the map (down) so it's
+     easy to tap on its own. */
+  #tc-gears{top:calc(112px + env(safe-area-inset-top));bottom:auto;
+    right:calc(34px + env(safe-area-inset-right));
+    flex-direction:row;gap:.5em}
   #tc-extras{bottom:calc(10px + env(safe-area-inset-bottom))}
+  /* the "VIEW MODE / THIRD PERSON" label sat bottom-right and overlapped
+     the pedals/drift cluster in the same corner — dropped here like the
+     other secondary readouts, since the touch controls need that space. */
+  .hbr{display:none!important}
 }
 
 /* ================================================================
