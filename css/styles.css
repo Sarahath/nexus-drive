@@ -203,21 +203,18 @@ input[type=range]{width:100%;accent-color:var(--acc);height:4px}
   border-color:rgba(255,138,61,.4);font-size:.62rem}
 .tc-hand.active{background:radial-gradient(circle,rgba(255,138,61,.35),rgba(255,138,61,.08));
   border-color:var(--acc2);box-shadow:0 0 22px rgba(255,138,61,.5);color:var(--acc2);transform:scale(.94)}
-/* manual gear-shift buttons — sit just left of the pedal cluster so they
-   don't overlap the gas/brake thumb zone; tap (not hold) to shift */
-#tc-gears{position:absolute;pointer-events:none;right:calc(88px + env(safe-area-inset-right));
-  bottom:calc(9vh + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:.55em;align-items:center}
-.tc-gear{flex-direction:column;gap:.1em;width:clamp(46px,12vw,58px);height:clamp(46px,12vw,58px);
-  border-radius:50%;font-size:1rem;border-color:rgba(46,230,214,.4)}
-.tc-gear span{font-size:.5rem;letter-spacing:.05em;opacity:.8}
-.tc-gear.active{background:radial-gradient(circle,rgba(46,230,214,.35),rgba(46,230,214,.08));
-  border-color:var(--acc);box-shadow:0 0 22px rgba(46,230,214,.5);color:var(--acc);transform:scale(.92)}
 #tc-extras{position:absolute;pointer-events:none;left:50%;transform:translateX(-50%);
   bottom:calc(4px + env(safe-area-inset-bottom));display:flex;gap:.6em}
 .tc-mini{pointer-events:all;touch-action:none;width:2.3em;height:2.3em;border-radius:50%;
   border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--dim);
   display:flex;align-items:center;justify-content:center;font-size:.95rem;opacity:.85}
 .tc-mini:active{border-color:var(--acc);color:var(--acc);background:rgba(46,230,214,.1)}
+/* manual gear shift buttons — stacked just above the gas/brake pedals
+   so the driving thumb can reach them without leaving that corner */
+#tc-gears{position:absolute;pointer-events:none;right:calc(14px + env(safe-area-inset-right));
+  bottom:calc(9vh + 190px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:.5em;align-items:flex-end}
+.tc-gear{width:2.5em;height:2.5em;font-size:1.05rem;color:var(--acc2);border-color:rgba(255,138,61,.35)}
+.tc-gear:active{border-color:var(--acc2);color:var(--acc2);background:rgba(255,138,61,.15)}
 /* toast (sleek top notification banner) */
 #toast{position:fixed;top:24px;left:50%;transform:translate(-50%,-16px) scale(.92);
   font-family:var(--fh);font-size:.9rem;font-weight:700;letter-spacing:.08em;

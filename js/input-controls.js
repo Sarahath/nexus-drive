@@ -44,6 +44,8 @@ const Inp={
     }
   },
   update(){
+    if(typeof GamepadCtl!=='undefined')GamepadCtl.poll();
+
     const k=this.keys;
     const kbThrottle=KEYMAP.throttle.some(c=>k[c])?1:0;
     const kbBrake=KEYMAP.brake.some(c=>k[c])?1:0;
@@ -55,116 +57,17 @@ const Inp={
     const rcStr=RC.connected?(RC.steer||0):0;
     const rcHnd=RC.connected?(RC.hand||false):false;
 
-    GP.poll();
-    const gpThr=GP.connected?(GP.throttle||0):0;
-    const gpBrk=GP.connected?(GP.brake||0):0;
-    const gpStr=GP.connected?(GP.steer||0):0;
-    const gpHnd=GP.connected?(GP.hand||false):false;
+    const gpThr=GamepadCtl.connected?(GamepadCtl.throttle||0):0;
+    const gpBrk=GamepadCtl.connected?(GamepadCtl.brake||0):0;
+    const gpStr=GamepadCtl.connected?(GamepadCtl.steer||0):0;
+    const gpHnd=GamepadCtl.connected?(GamepadCtl.hand||false):false;
 
     this.throttle=Math.max(kbThrottle,TouchCtl.throttle||0,rcThr,gpThr);
     this.brake=Math.max(kbBrake,TouchCtl.brake||0,rcBrk,gpBrk);
-    this.steer=kbSteer!==0?kbSteer:(TouchCtl.steer||rcStr||gpStr);
+    this.steer=kbSteer!==0?kbSteer:(gpStr||TouchCtl.steer||rcStr);
     this.hand=kbHand||(TouchCtl.hand||false)||rcHnd||gpHnd;
   },
 };
-/* ─── GAMEPAD / JOYSTICK SUPPORT ───────────────────────────────
-   Standard Gamepad API mapping (Xbox/PlayStation-style pads,
-   most USB/Bluetooth joysticks report this "standard" layout):
-     Left stick X ........ steer
-     Right trigger (RT/R2) throttle
-     Left trigger (LT/L2)  brake
-     A / Cross ........... handbrake (hold)
-     B / Circle ........... recover car (tap)
-     X / Square ........... horn (tap)
-     Y / Triangle .......... headlights (tap)
-     LB / L1 .............. gear down (tap)
-     RB / R1 .............. gear up (tap)
-     Back / Select ......... toggle map (tap)
-     Start / Options ....... pause (tap)
-     L3 (left stick click).. cycle camera (tap)
-     R3 (right stick click). toggle autopilot (tap)
-     D-pad Up .............. auto-park (tap)
-*/
-const GP={
-  index:null,connected:false,
-  throttle:0,brake:0,steer:0,hand:false,
-  _prevBtn:{},
-  DEADZONE:.15,
-  init(){
-    window.addEventListener('gamepadconnected',e=>{
-      this.index=e.gamepad.index;this.connected=true;
-      Inp.source='gamepad';
-      gpUI_note();
-      toast('🎮 Controller connected: '+(e.gamepad.id||'').slice(0,40));
-    });
-    window.addEventListener('gamepaddisconnected',e=>{
-      if(e.gamepad.index!==this.index)return;
-      this.index=null;this.connected=false;
-      this.throttle=0;this.brake=0;this.steer=0;this.hand=false;this._prevBtn={};
-      Inp.source=(typeof TouchCtl!=='undefined'&&TouchCtl.active)?'touch':'kb';
-      gpUI_note();
-      toast('🎮 Controller disconnected');
-    });
-    // A controller already plugged in before the page loaded won't
-    // always fire 'gamepadconnected' (notably in some Firefox builds),
-    // so also check for one directly on boot.
-    const pads=navigator.getGamepads?navigator.getGamepads():[];
-    for(const p of pads){if(p){this.index=p.index;this.connected=true;break;}}
-    gpUI_note();
-  },
-  _dz(v){return Math.abs(v)<this.DEADZONE?0:v;},
-  _tapBtn(down,wasDown,fn){if(down&&!wasDown)fn();},
-  poll(){
-    if(!navigator.getGamepads){this.connected=false;return;}
-    const pads=navigator.getGamepads();
-    const gp=this.index!=null?pads[this.index]:null;
-    if(!gp){
-      if(this.connected){this.connected=false;this.throttle=0;this.brake=0;this.steer=0;this.hand=false;gpUI_note();}
-      return;
-    }
-    if(!this.connected){this.connected=true;gpUI_note();}
-    const b=gp.buttons,a=gp.axes;
-    const val=i=>b[i]?(b[i].value||(b[i].pressed?1:0)):0;
-    const down=i=>!!(b[i]&&b[i].pressed);
-
-    this.throttle=val(7);          // Right trigger
-    this.brake=val(6);             // Left trigger
-    this.steer=this._dz(a[0]||0);  // Left stick X
-    this.hand=down(0);             // A / Cross — hold
-
-    const canPause=(appState==='driving'||appState==='paused');
-    const driving=appState==='driving';
-    const prev=this._prevBtn;
-    if(canPause)this._tapBtn(down(9),prev[9],()=>togglePause());              // Start
-    if(driving){
-      this._tapBtn(down(1),prev[1],()=>{Car.reset();toast('↺ Recovered');});   // B
-      this._tapBtn(down(2),prev[2],()=>Aud.honk());                            // X
-      this._tapBtn(down(3),prev[3],()=>W.headlights=!W.headlights);            // Y
-      this._tapBtn(down(8),prev[8],()=>toggleMap());                           // Back
-      this._tapBtn(down(10),prev[10],()=>cycleCam());                         // L3
-      this._tapBtn(down(11),prev[11],()=>{
-        Car.aiDriving=!Car.aiDriving;W.ai.car=Car.aiDriving;
-        syncPauseSeg('seg-ai','ai',Car.aiDriving?'car':'off');
-        toast(Car.aiDriving?'🤖 Autopilot ON':'🤖 Autopilot OFF');
-      });                                                                       // R3
-      this._tapBtn(down(12),prev[12],()=>Car.startAP());                      // D-pad Up
-      if(!Car.aiDriving&&!Car.autoPark){
-        this._tapBtn(down(5),prev[5],()=>{
-          if(Car.gear<GEAR_DATA.length){Car.gear++;Car._shiftT=SHIFT_CUT_DUR;Aud.shiftCut();Aud.exhaustPop();toast('⚙ Gear '+Car.gear);}
-        });                                                                     // RB
-        this._tapBtn(down(4),prev[4],()=>{
-          if(Car.gear>1){Car.gear--;Car._shiftT=SHIFT_CUT_DUR;Aud.shiftCut();Aud.exhaustPop();toast('⚙ Gear '+Car.gear);}
-        });                                                                     // LB
-      }
-    }
-    for(let i=0;i<b.length;i++)prev[i]=down(i);
-    if(this.throttle>.05||this.brake>.05||Math.abs(this.steer)>.05||this.hand)Inp.source='gamepad';
-  },
-};
-function gpUI_note(){
-  const el=document.getElementById('gp-note');
-  if(el)el.textContent=GP.connected?'🎮 Controller connected':'No controller detected — press any button to connect';
-}
 /* ─── ON-SCREEN TOUCH CONTROLS ─────────────────────────────────── */
 const TouchCtl={
   active:false,throttle:0,brake:0,steer:0,hand:false,
@@ -184,9 +87,9 @@ const TouchCtl={
     tap('tc-cam',()=>cycleCam());
     tap('tc-recover',()=>{Car.reset();toast('↺ Recovered');});
     tap('tc-fs',()=>toggleFullscreen());
-    // manual gear shift buttons — never during autopilot/auto-park,
-    // where the game drives and picks its own revs (same guard as
-    // the keyboard/gamepad gear-shift handlers above)
+    // manual gear shift buttons — mirrors the Digit1/Digit2 keyboard
+    // shortcuts and the phone-controller gear-up/gear-down actions,
+    // disabled while autopilot/auto-park is driving the car itself
     tap('tc-gear-up',()=>{
       if(Car.aiDriving||Car.autoPark)return;
       if(Car.gear<GEAR_DATA.length){Car.gear++;Car._shiftT=SHIFT_CUT_DUR;Aud.shiftCut();Aud.exhaustPop();toast('⚙ Gear '+Car.gear);}
@@ -234,6 +137,80 @@ const TouchCtl={
     };
     bindArrow('tc-left',v=>leftDown=v);
     bindArrow('tc-right',v=>rightDown=v);
+  },
+};
+/* ─── GAMEPAD / JOYSTICK ────────────────────────────────────────
+   Any controller the browser recognizes with the "standard" Gamepad
+   mapping (Xbox, PlayStation, most generic USB/Bluetooth pads) drives
+   the car directly — just plug it in / pair it and press a button or
+   move a stick, no setup screen needed. Left stick steers, the
+   analog triggers are gas/brake, face buttons handle the rest. */
+const GAMEPAD_MAP={
+  steerAxis:0, throttleBtn:7, brakeBtn:6,
+  handbrake:0,   // A / Cross — hold
+  horn:1,        // B / Circle — tap
+  headlights:2,  // X / Square — tap
+  cycleCam:3,    // Y / Triangle — tap
+  gearDown:4,    // Left bumper — tap
+  gearUp:5,      // Right bumper — tap
+  toggleMap:8,   // Back / Select — tap
+  pause:9,       // Start — tap
+  recover:10,    // Left stick click — tap
+  autoPark:11,   // Right stick click — tap
+};
+const GamepadCtl={
+  index:null,connected:false,throttle:0,brake:0,steer:0,hand:false,
+  _prev:{},
+  init(){
+    window.addEventListener('gamepadconnected',e=>{
+      this.index=e.gamepad.index;this.connected=true;this._prev={};
+      Inp.source='gamepad';
+      toast('🎮 Controller connected');
+      const hint=document.getElementById('gp-hint');if(hint)hint.style.display='';
+    });
+    window.addEventListener('gamepaddisconnected',e=>{
+      if(e.gamepad.index!==this.index)return;
+      this.index=null;this.connected=false;
+      this.throttle=0;this.brake=0;this.steer=0;this.hand=false;
+      Inp.source=(typeof TouchCtl!=='undefined'&&TouchCtl.active)?'touch':'kb';
+      toast('🎮 Controller disconnected');
+      const hint=document.getElementById('gp-hint');if(hint)hint.style.display='none';
+    });
+  },
+  _pressed(gp,i){const b=gp.buttons[i];return !!(b&&(b.pressed||b.value>.5));},
+  _tapped(gp,i){
+    const now=this._pressed(gp,i);const was=!!this._prev[i];this._prev[i]=now;
+    return now&&!was;
+  },
+  poll(){
+    if(this.index===null)return;
+    const pads=navigator.getGamepads?navigator.getGamepads():[];
+    const gp=pads[this.index];
+    if(!gp){return;}
+
+    const ax=gp.axes[GAMEPAD_MAP.steerAxis]||0;
+    this.steer=Math.abs(ax)>.12?clamp(ax,-1,1):0;
+
+    const rt=gp.buttons[GAMEPAD_MAP.throttleBtn]?gp.buttons[GAMEPAD_MAP.throttleBtn].value:0;
+    const lt=gp.buttons[GAMEPAD_MAP.brakeBtn]?gp.buttons[GAMEPAD_MAP.brakeBtn].value:0;
+    this.throttle=rt>.04?rt:0;
+    this.brake=lt>.04?lt:0;
+    this.hand=this._pressed(gp,GAMEPAD_MAP.handbrake);
+
+    // one-shot (edge-triggered) actions — same gating as keyboard/touch
+    if(appState!=='driving'&&appState!=='paused')return;
+    if(this._tapped(gp,GAMEPAD_MAP.pause)){togglePause();return;}
+    if(appState!=='driving')return;
+    if(this._tapped(gp,GAMEPAD_MAP.cycleCam))cycleCam();
+    if(this._tapped(gp,GAMEPAD_MAP.toggleMap))toggleMap();
+    if(this._tapped(gp,GAMEPAD_MAP.autoPark))Car.startAP();
+    if(this._tapped(gp,GAMEPAD_MAP.horn))Aud.honk();
+    if(this._tapped(gp,GAMEPAD_MAP.headlights))W.headlights=!W.headlights;
+    if(this._tapped(gp,GAMEPAD_MAP.recover)){Car.reset();toast('↺ Recovered');}
+    if(!Car.aiDriving&&!Car.autoPark){
+      if(this._tapped(gp,GAMEPAD_MAP.gearUp)&&Car.gear<GEAR_DATA.length){Car.gear++;Car._shiftT=SHIFT_CUT_DUR;Aud.shiftCut();Aud.exhaustPop();toast('⚙ Gear '+Car.gear);}
+      if(this._tapped(gp,GAMEPAD_MAP.gearDown)&&Car.gear>1){Car.gear--;Car._shiftT=SHIFT_CUT_DUR;Aud.shiftCut();Aud.exhaustPop();toast('⚙ Gear '+Car.gear);}
+    }
   },
 };
 // Phone Control bridge (Wi-Fi LAN, QR-code pairing, WebSocket)

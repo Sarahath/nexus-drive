@@ -23,6 +23,45 @@ function openBriefing(i){
   document.getElementById('scr-brief').classList.add('show');
   appState='briefing';
 }
+function isNearFuelStation(x,z,minDist=45){
+  if(!W.fuelPts||!W.fuelPts.length)return false;
+  for(const f of W.fuelPts){
+    if(Math.hypot(x-f.x,z-f.z)<minDist)return true;
+  }
+  return false;
+}
+
+function pickSafePoints(n,minFuelDist=45){
+  const pts=[];
+  const half=Math.max(2,(CFG.grid>>1)-1);
+  const candidates=[];
+  for(let i=-half;i<=half;i++){
+    for(let j=-half;j<=half;j++){
+      const pos=navNodeToWorld(i,j);
+      const dSpawn=Math.hypot(pos.x-CFG.spawnX,pos.z-CFG.spawnZ);
+      if(dSpawn>25&&!isNearFuelStation(pos.x,pos.z,minFuelDist)){
+        candidates.push(pos);
+      }
+    }
+  }
+  for(let i=candidates.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [candidates[i],candidates[j]]=[candidates[j],candidates[i]];
+  }
+  for(const c of candidates){
+    if(pts.length>=n)break;
+    let close=false;
+    for(const p of pts){
+      if(Math.hypot(c.x-p.x,c.z-p.z)<28){close=true;break;}
+    }
+    if(!close||pts.length===0)pts.push(c);
+  }
+  while(pts.length<n&&candidates.length>pts.length){
+    pts.push(candidates[pts.length]);
+  }
+  return pts;
+}
+
 function beginMission(i){
   const m=MISSIONS[i];
   const mis={index:i,t:0,progress:0,collisionsStart:W.collisionCount};
@@ -41,20 +80,24 @@ function beginMission(i){
   document.getElementById('mis-title').textContent=`MISSION ${i+1} OF ${MISSIONS.length} · ${m.name.toUpperCase()}`;
   toast(`🎯 ${m.name}`);
   clearMissionProps(); // tear down any leftover cones/box outline from a previous attempt
+  
   if(m.key==='timetrial'){
-    // Pick furthest city intersection across downtown (~280-320m long sprint)
-    const R=Math.max(1,NAV_HALF-1);
-    const farTarget=navNodeToWorld(R,R);
-    mis.target=farTarget;
+    // Destination away from petrol bunks across downtown
+    const pts=pickSafePoints(1,50);
+    mis.target=pts[0]||navNodeToWorld(NAV_HALF-1,NAV_HALF-1);
     W.dest=mis.target;
     const dist=Math.hypot(mis.target.x-Car.pos.x,mis.target.z-Car.pos.z);
-    mis.timeLimit=Math.round(clamp(dist/4.2,65,85)); // Generous extended time limit (65-85s)
+    mis.timeLimit=Math.round(clamp(dist/4.2,65,85)); // Extended time limit (65-85s)
     if(typeof mkFinishArch==='function'){
       const arch=mkFinishArch(mis.target);
       scene.add(arch);W.missionProps.push(arch);
     }
   } else if(m.key==='parkchallenge'){
-    const free=ensureFreeSpot();
+    let free=ensureFreeSpot();
+    // Filter parking spots to guarantee they are NOT near any petrol bunk
+    const safeFree=free.filter(s=>!isNearFuelStation(s.x,s.z,42));
+    if(safeFree.length)free=safeFree;
+    
     if(!free.length){
       toast('⚠ No free parking spots right now — try again in a moment');
       document.getElementById('mis-hud').classList.remove('show');
@@ -79,7 +122,8 @@ function beginMission(i){
     const boxMesh=mkParkBox(mis.box);scene.add(boxMesh);W.missionProps.push(boxMesh);
     mis.boxMesh=boxMesh;
   } else if(m.key==='obstacledodge'){
-    const far=pickPoints(1)[0]||navNodeToWorld(NAV_HALF-1,NAV_HALF-1);
+    const pts=pickSafePoints(1,48);
+    const far=pts[0]||navNodeToWorld(NAV_HALF-1,NAV_HALF-1);
     const startPos={x:Car.pos.x,z:Car.pos.z};
     let out=planRoadRoute(Car.pos,far.x,far.z)||[far];
     let back=planRoadRoute(far,startPos.x,startPos.z)||[startPos];
@@ -108,13 +152,11 @@ function beginMission(i){
       }
     }
   } else if(m.key==='checkpointrally'){
-    mis.checkpoints=pickPoints(5);
-    if(mis.checkpoints.length<3)mis.checkpoints=missionLandmarks().slice(0,5);
+    mis.checkpoints=pickSafePoints(5,45);
     mis.idx=0;W.dest=mis.checkpoints[0];
     let courseLen=0;
     for(let k=1;k<mis.checkpoints.length;k++)courseLen+=Math.hypot(mis.checkpoints[k].x-mis.checkpoints[k-1].x,mis.checkpoints[k].z-mis.checkpoints[k-1].z);
     mis.timeLimit=clamp(courseLen/6.5,70,170);
-    // Spawn 3D Checkpoint Flag Markers for each checkpoint
     if(typeof mkCheckpointMarker==='function'){
       mis.checkpoints.forEach(cp=>{
         const cpMesh=mkCheckpointMarker(cp);
@@ -124,7 +166,7 @@ function beginMission(i){
   } else if(m.key==='nightdrift'){
     W.tod=22;W.wx='rain';
     mis.driftPts=0;mis.targetPts=1500;
-    const pts=pickPoints(1);
+    const pts=pickSafePoints(1,48);
     mis.target=pts[0]||navNodeToWorld(NAV_HALF-1,NAV_HALF-1);
     W.dest=mis.target;
     mis.timeLimit=m.timeLimit||65;
@@ -134,7 +176,7 @@ function beginMission(i){
     }
   } else if(m.key==='viprescue'){
     mis.vipHealth=100;mis.lastCol=W.collisionCount;
-    mis.checkpoints=pickPoints(3);
+    mis.checkpoints=pickSafePoints(3,48);
     mis.idx=0;W.dest=mis.checkpoints[0];
     mis.timeLimit=m.timeLimit||85;
     if(typeof mkCheckpointMarker==='function'){
@@ -145,7 +187,8 @@ function beginMission(i){
     }
   } else if(m.key==='ecofuel'){
     Car.fuel=22.0;
-    const pts=W.fuelPts.length?W.fuelPts:pickPoints(1);
+    // Eco charging haven destination far away from petrol stations
+    const pts=pickSafePoints(1,55);
     mis.target={x:pts[0].x,z:pts[0].z};
     W.dest=mis.target;
     mis.timeLimit=m.timeLimit||75;
@@ -154,7 +197,7 @@ function beginMission(i){
       scene.add(cpMesh);W.missionProps.push(cpMesh);
     }
   } else if(m.key==='sensorcalib'){
-    mis.checkpoints=pickPoints(4);
+    mis.checkpoints=pickSafePoints(4,45);
     mis.idx=0;W.dest=mis.checkpoints[0];
     mis.calibrated=0;mis.timeLimit=m.timeLimit||80;
     if(typeof mkCheckpointMarker==='function'){
@@ -165,7 +208,7 @@ function beginMission(i){
     }
   } else if(m.key==='trafficweave'){
     mis.nearMisses=0;mis.targetNearMisses=8;mis.nearMissCooldown=0;
-    const pts=pickPoints(1);
+    const pts=pickSafePoints(1,48);
     mis.target=pts[0]||navNodeToWorld(NAV_HALF-1,NAV_HALF-1);
     W.dest=mis.target;
     mis.timeLimit=m.timeLimit||75;
@@ -174,7 +217,7 @@ function beginMission(i){
       scene.add(arch);W.missionProps.push(arch);
     }
   } else if(m.key==='apexfinale'){
-    mis.checkpoints=pickPoints(8);
+    mis.checkpoints=pickSafePoints(8,45);
     mis.idx=0;W.dest=mis.checkpoints[0];
     mis.timeLimit=m.timeLimit||140;
     if(typeof mkCheckpointMarker==='function'){

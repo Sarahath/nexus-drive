@@ -57,7 +57,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
   try{ await loadConfig(); }catch(e){ console.error(e); }
   try{ Inp.init(); }catch(e){ console.error(e); }
   try{ TouchCtl.init(); }catch(e){ console.error(e); }
-  try{ GP.init(); }catch(e){ console.error(e); }
+  try{ GamepadCtl.init(); }catch(e){ console.error(e); }
   try{ wirePause(); }catch(e){ console.error(e); }
   try{ initMapEvents(); }catch(e){ console.error(e); }
   try{ wireCu(); }catch(e){ console.error(e); }

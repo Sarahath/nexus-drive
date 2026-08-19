@@ -103,9 +103,9 @@ const MISSIONS=[
     objective:'Rush the VIP to 3 Emergency Drop-offs with minimal collisions and high VIP Health!',
     instructions:['Navigate dense rush hour traffic carefully','Each collision deals 25% damage to VIP Health','Reach all 3 medical drop-off points before health hits 0%'],
     timeLimit:85},
-  {key:'ecofuel',name:'Empty Tank Eco-Glider',icon:'⛽',
-    objective:'Fuel is critically low (20%)! Shift gears smartly and coast to the Fuel Station!',
-    instructions:['Your fuel gauge starts at critical 20%','Shift to 4th & 5th gear and coast to minimize consumption','Reach the glowing green Fuel Station before the tank hits 0%'],
+  {key:'ecofuel',name:'Empty Tank Eco-Glider',icon:'⚡',
+    objective:'Fuel is critically low (20%)! Shift gears smartly and reach the Safe Eco-Haven Plaza!',
+    instructions:['Your fuel gauge starts at critical 20%','Shift to 4th & 5th gear and coast to minimize consumption','Reach the glowing green Eco-Haven Plaza before the tank hits 0%'],
     timeLimit:75},
   {key:'sensorcalib',name:'AI LiDAR Sensor Calibration',icon:'🤖',
     objective:'Drive through 4 LiDAR/Radar Sensor Scanning Arches at steady target speed (40–65 KM/H)!',
@@ -121,22 +121,34 @@ const MISSIONS=[
     timeLimit:140},
 ];
 
-// Fixed reference points derived from the procedural city so missions have
-// concrete, reachable targets regardless of how the map was randomized.
+// Fixed reference points derived from the procedural city — strictly excludes fuel stations
 function missionLandmarks(){
-  const pts=[...W.fuelPts.map(f=>({x:f.x,z:f.z}))];
-  const seen=new Set(pts.map(p=>p.x+','+p.z));
-  for(const s of W.parkSpots){const k=Math.round(s.x)+','+Math.round(s.z);if(!seen.has(k)&&pts.length<10){pts.push({x:s.x,z:s.z});seen.add(k);}}
-  // Real road-grid intersections, pulled in one ring from the outer edge so
-  // every mission target sits solidly inside the city (on an actual drivable
-  // intersection) rather than out past the last block near the boundary wall.
+  const pts=[];
+  const seen=new Set();
+  const isNearFuel=(x,z)=>{
+    if(!W.fuelPts||!W.fuelPts.length)return false;
+    for(const f of W.fuelPts){
+      if(Math.hypot(x-f.x,z-f.z)<45)return true;
+    }
+    return false;
+  };
+  for(const s of W.parkSpots){
+    const k=Math.round(s.x)+','+Math.round(s.z);
+    if(!seen.has(k)&&!isNearFuel(s.x,s.z)&&pts.length<10){
+      pts.push({x:s.x,z:s.z});
+      seen.add(k);
+    }
+  }
   const R=Math.max(1,NAV_HALF-1);
   const nodeIdx=[...new Set([-R,-Math.round(R/2),0,Math.round(R/2),R])];
   nodeIdx.forEach(i=>nodeIdx.forEach(j=>{
     if(i===0&&j===0)return; // skip the very center (spawn area)
     const w=navNodeToWorld(i,j);
     const k=Math.round(w.x)+','+Math.round(w.z);
-    if(!seen.has(k)){pts.push(w);seen.add(k);}
+    if(!seen.has(k)&&!isNearFuel(w.x,w.z)){
+      pts.push(w);
+      seen.add(k);
+    }
   }));
   return pts;
 }
