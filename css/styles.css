@@ -21,6 +21,31 @@ body{width:100%;height:100%;overflow:hidden;background:var(--bg);
   #c{height:100dvh}
 }
 
+/* ─── FORCE LANDSCAPE ON MOBILE ───────────────────────────────────
+   screen.orientation.lock('landscape') (used in customization.js)
+   only works on Chromium/Android and only while in fullscreen — it
+   silently no-ops on iOS Safari and any browser outside fullscreen,
+   which is why the game used to get stuck in a broken portrait
+   layout on phones. This rotates the whole page 90° whenever the
+   device is actually held in portrait, so play is ALWAYS presented
+   in landscape regardless of which browser/OS the player is on —
+   no physical rotation or user gesture required. Since a CSS
+   `transform` on `html` makes it the containing block for every
+   `position:fixed` descendant (the canvas, HUD, menus, touch
+   controls, etc. are all fixed/inset:0), they automatically resize
+   and reposition to fill the rotated box with no further changes. */
+@media screen and (orientation:portrait) and (pointer:coarse){
+  html{
+    width:100vh;height:100vw;
+    width:100dvh;height:100dvw;
+    transform:rotate(-90deg);
+    transform-origin:left top;
+    position:absolute;
+    top:100%;left:0;
+    overflow:hidden;
+  }
+}
+
 /* LOADING */
 #scr-load{position:fixed;inset:0;z-index:300;
   background:radial-gradient(ellipse at 50% 40%,#0c1820 0%,#030508 70%);
@@ -223,7 +248,7 @@ input[type=range]{width:100%;accent-color:var(--acc);height:4px}
    so the driving thumb can reach them without leaving that corner */
 #tc-gears{position:absolute;pointer-events:none;right:calc(18px + env(safe-area-inset-right));
   bottom:calc(9vh + 26px + 190px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:.65em;align-items:flex-end}
-.tc-gear{width:2.5em;height:2.5em;font-size:1.05rem;color:var(--acc2);border-color:rgba(255,138,61,.35)}
+.tc-gear{width:2.5em;height:2.5em;font-size:1.5rem;font-weight:700;line-height:1;color:var(--acc2);border-color:rgba(255,138,61,.35)}
 .tc-gear:active{border-color:var(--acc2);color:var(--acc2);background:rgba(255,138,61,.15)}
 /* toast (sleek top notification banner) */
 #toast{position:fixed;top:24px;left:50%;transform:translate(-50%,-16px) scale(.92);
@@ -424,9 +449,13 @@ input[type=range]{width:100%;accent-color:var(--acc);height:4px}
   background:radial-gradient(ellipse at 50% 40%,#0c1820 0%,#030508 75%);
   flex-direction:column;align-items:center;justify-content:center;text-align:center;
   padding:2em;gap:1.1em}
-@media screen and (orientation:portrait) and (pointer:coarse){
-  #rotate-prompt:not(.dismissed){display:flex}
-}
+/* No longer shown: the FORCE LANDSCAPE rule above now auto-rotates the
+   whole page into landscape instead of asking the player to do it
+   manually, so this prompt would otherwise pop up needlessly on top
+   of an already-correctly-oriented game. Kept in the DOM (harmless,
+   never displayed) instead of ripped out, in case a future browser
+   quirk needs the manual fallback again. */
+#rotate-prompt{display:none!important}
 .rot-ico{font-size:3.2rem;animation:rot-spin 1.6s ease-in-out infinite}
 @keyframes rot-spin{0%,100%{transform:rotate(0deg)}50%{transform:rotate(90deg)}}
 .rot-ttl{font-family:var(--fd);font-weight:900;letter-spacing:.14em;font-size:1.05rem;color:var(--acc)}
